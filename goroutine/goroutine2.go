@@ -34,3 +34,46 @@ if <- ch != 1000 {
 同一个操作符 <- 既可用于发送也可以接收，但Go会根据操作对象弄明白
 通道的发送和接收都是原子操作：它们总是互不干扰的完成的。
 */
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	ch := make(chan string)
+
+	go sendData(ch)
+	go getData(ch)
+
+	time.Sleep(1e9)
+}
+
+func sendData(ch chan string) {
+	ch <- "Washingtong"
+	ch <- "Tripoli"
+	ch <- "London"
+	ch <- "Beijing"
+	ch <- "Tokyo"
+}
+
+func getData(ch chan string) {
+	var input string
+	for {
+		input = <- ch
+		fmt.Printf("%s ", input)
+	}
+}
+
+/*
+mian()函数中启动了两个协程：sendData()通过通道ch发送了5个字符串，getData()按顺序接收它们并打印出来。
+如果两个协程需要通信，你必须给它们同一个通道作为参数
+我们发现协程之间的同步非常重要：
+main()等待了1秒让两个协程完成，如果不这样，sendData()就没机会输出。
+getData()使用了无限循环：它随着sendData()的发送完成和ch变空也结束了
+如果我们移除go，程序无法运行
+为什么会这样？运行时（runtime）会检查所有的协程是否在等待着什么东西（可从某个通道读取或者写入某个通道），
+这意味着程序将无法继续执行。这是死锁（deadlock）的一种形式，而运行时（runtime）可以为我们检测到这种情况。
+
+*/
